@@ -36,8 +36,8 @@ standby 1 track GigabitEthernet0/0
 ```
 show standby brief
 ```
-По выводу команды видно, что Router0 участвует в HSRP, а также корректно обрабатывает смену состояния при отказе линии.
-### 2. Настройка Router2(1)
+По выводу команды видно, что Router1 участвует в HSRP, а также корректно обрабатывает смену состояния при отказе линии.
+### 2. Настройка Router2
    <img width="644" height="133" alt="3_Router2(1)-default" src="https://github.com/user-attachments/assets/8763b277-f12e-4610-97b7-65079f80f58e" />
 
 На маршрутизаторе Router2 также была настроена работа HSRP для двух групп.
