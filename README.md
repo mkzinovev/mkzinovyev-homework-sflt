@@ -1,0 +1,2 @@
+# mkzinovyev-homework-sflt
+Отказоустойчивость
