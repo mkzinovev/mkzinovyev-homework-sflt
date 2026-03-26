@@ -19,12 +19,29 @@
 
 ### `Ответ в свободной форме:`
 
-1. `Заполните здесь этапы выполнения, если требуется ....`
-2. `Заполните здесь этапы выполнения, если требуется ....`
+
+
+1. `Настройка Router1(0)`
+   <img width="613" height="125" alt="1_Router1(0)-default" src="https://github.com/user-attachments/assets/afe604cd-c7d7-4637-85ea-99e582208c1b" />
+   
+   На маршрутизаторе Router0 был настроен HSRP для первой группы на интерфейсе GigabitEthernet0/1 с виртуальным IP-адресом 192.168.1.1.
+   Также была включена команда preempt и настроено отслеживание состояния интерфейса GigabitEthernet0/0 с помощью команды standby 1 track GigabitEthernet0/0.
+   Это позволяет при отказе отслеживаемого интерфейса уменьшить приоритет маршрутизатора и передать активную роль резервному маршрутизатору. Проверка выполнялась командой show standby brief.
+   
+<img width="626" height="118" alt="2_Router1(0)-enable" src="https://github.com/user-attachments/assets/22447ed3-c82d-4948-a9dc-f7ce1f515349" />
+
 3. `Заполните здесь этапы выполнения, если требуется ....`
+   <img width="644" height="133" alt="3_Router2(1)-default" src="https://github.com/user-attachments/assets/8763b277-f12e-4610-97b7-65079f80f58e" />
+
 4. `Заполните здесь этапы выполнения, если требуется ....`
+   <img width="700" height="123" alt="4_Router2(1)-enable" src="https://github.com/user-attachments/assets/a7a7441e-0427-454c-abb6-cfebc59dbc80" />
+
 5. `Заполните здесь этапы выполнения, если требуется ....`
-6. 
+   <img width="2309" height="952" alt="6_ping_pc-server" src="https://github.com/user-attachments/assets/483d9db4-a8da-44f2-a4ef-b834c5f0f825" />
+
+6. `Заполните здесь этапы выполнения, если требуется ....`
+<img width="2282" height="1047" alt="7_Router1(0)-enable-Router2(1)-enable" src="https://github.com/user-attachments/assets/eccee9d0-da2b-4c4a-ae2d-ad6c3a3ed957" />
+
 ```
 Поле для вставки кода...
 ....
