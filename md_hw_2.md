@@ -34,10 +34,11 @@
 
 Также была выполнена прямая проверка доступности обоих серверов с помощью curl, чтобы убедиться, что каждый из них отвечает корректно и отдает своё содержимое.
 
-Создание каталогов srv01 и srv02, запуск Python-серверов на портах 8888 и 9999, а также прямая проверка их доступности через curl
+Создание каталогов srv01 и srv02, запуск Python-серверов на портах 8888 и 9999, а также прямая проверка их доступности через curl:
 
+<img width="1986" height="1114" alt="1_Py_srv1_srv2_reqwest" src="https://github.com/user-attachments/assets/c1ab423e-b94d-4b60-b294-c86e6bc6083f" />
 
-2. Установка и запуск HAProxy
+### 2. Установка и запуск HAProxy
 
 После запуска backend-серверов был установлен пакет HAProxy средствами пакетного менеджера dnf.
 
@@ -46,61 +47,101 @@
 
 На этом этапе HAProxy уже установлен в системе и может быть использован как балансировщик трафика между двумя backend-серверами.
 
-Сюда вставить скриншот 2
-2_install_haproxy.PNG
+Установка HAProxy в РЕД ОС, проверка версии и запуск службы через systemctl:
+<img width="1567" height="860" alt="2_install_haproxy" src="https://github.com/user-attachments/assets/8bd3c478-e465-4539-910c-666ba3309b05" />
 
-Подпись к скриншоту 2:
-Рисунок 2 — Установка HAProxy в РЕД ОС, проверка версии и запуск службы через systemctl
 
-3. Настройка HAProxy для балансировки на 4 уровне
+### 3. Настройка HAProxy для балансировки на 4 уровне
 
 Для выполнения задания HAProxy был настроен в режиме TCP, что соответствует балансировке на 4 уровне OSI.
 
 В качестве алгоритма распределения нагрузки был выбран Round-robin, то есть входящие подключения направляются на backend-серверы по очереди:
 
-первое соединение — на srv01
-второе соединение — на srv02
-третье — снова на srv01
+1. первое соединение — на srv01
+2. второе соединение — на srv02
+3. третье — снова на srv01
 и так далее
 
 HAProxy был настроен на прослушивание порта 1325 и пересылку входящих TCP-подключений на локальные серверы:
-
+```
 127.0.0.1:8888
 127.0.0.1:9999
-
+```
 Проверка выполнялась сначала одиночными запросами через curl, а затем серией запросов в цикле.
 По результату было видно, что ответы действительно приходят поочередно от двух backend-серверов, что подтверждает корректную работу алгоритма Round-robin.
 
 Дополнительно на скриншоте видно, что порт 1325 прослушивается процессом haproxy, а в окнах Python-серверов появляются входящие HTTP-запросы, которые HAProxy перенаправляет на соответствующий backend.
 
-Сюда вставить скриншот 3
-3_Проверка_балансировки.PNG
+Проверка работы HAProxy: прослушивание порта 1325 и поочередное распределение запросов между srv01 и srv02 по алгоритму Round-robin:
+<img width="2023" height="544" alt="3_Проверка_балансировки" src="https://github.com/user-attachments/assets/5ac39eaa-8328-45f6-b310-157de2de1e86" />
 
-Подпись к скриншоту 3:
-Рисунок 3 — Проверка работы HAProxy: прослушивание порта 1325 и поочередное распределение запросов между srv01 и srv02 по алгоритму Round-robin
-
-Конфигурация backend-серверов
-
+### Конфигурация backend-серверов
 Для подготовки двух backend-серверов использовались следующие команды:
-
+```
 mkdir -p ~/srv01 ~/srv02
 echo "Ответ от srv01, порт 8888" > ~/srv01/index.html
 echo "Ответ от srv02, порт 9999" > ~/srv02/index.html
+```
 
 Запуск серверов выполнялся в отдельных терминалах:
 
-Сервер 1
+### Сервер 1
+```
 cd ~/srv01
 python3 -m http.server 8888
 Сервер 2
 cd ~/srv02
 python3 -m http.server 9999
-
+```
 Проверка прямой доступности:
-
+```
 curl http://127.0.0.1:8888
 curl http://127.0.0.1:9999
-Конфигурация HAProxy
+```
+### Конфигурация HAProxy:
+```
+global
+	log /dev/log	local0
+	log /dev/log	local1 notice
+	chroot /var/lib/haproxy
+	stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+	stats timeout 30s
+	user haproxy
+	group haproxy
+	daemon
+
+	ca-base /etc/ssl/certs
+	crt-base /etc/ssl/private
+
+        ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+        ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+        ssl-default-bind-options ssl-min-ver TLSv1.2 no-tls-tickets
+
+defaults
+	log	global
+	mode	tcp
+	option	tcplog
+	timeout connect 5000
+	timeout client  50000
+	timeout server  50000
+
+listen stats
+        bind :888
+        mode http
+        stats enable
+        stats uri /stats
+        stats refresh 5s
+        stats realm Haproxy\ Statistics
+
+listen web_tcp
+        bind :1325
+        mode tcp
+        balance roundrobin
+
+        server s1 127.0.0.1:8888 check inter 3s
+        server s2 127.0.0.1:9999 check inter 3s
+```
+
 
 Использовался следующий конфигурационный файл:
 Поле для вставки кода...
