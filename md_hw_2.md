@@ -212,12 +212,12 @@ listen web_tcp
 
 После настройки конфигурации выполнялась проверка корректности файла:
 ```
-sudo haproxy -c -f /etc/haproxy/haproxy.cfg
+haproxy -c -f /etc/haproxy/haproxy.cfg
 ```
 Затем служба HAProxy была перезапущена:
 ```
-sudo systemctl restart haproxy
-sudo systemctl status haproxy
+systemctl restart haproxy
+systemctl status haproxy
 ```
 После этого была выполнена проверка доступности порта, который слушает HAProxy:
 ```
@@ -265,7 +265,7 @@ HAProxy принимал подключения на порту 1325 и пооч
 - HAproxy должен балансировать только тот http-трафик, который адресован домену example.local
 - На проверку направьте конфигурационный файл haproxy, скриншоты, где видно перенаправление запросов на разные серверы при обращении к HAProxy c использованием домена example.local и без него.
 
-### 1. Запуск трёх Python-серверов
+### 1. Подготовка файлов для трёх Python-серверов
 Для проверки балансировки были созданы три каталога с разными HTML-страницами:
 ```
 mkdir -p ~/lb/server1 ~/lb/server2 ~/lb/server3
@@ -292,9 +292,11 @@ cd ~/lb/server3 && python3 -m http.server 8083
 ```
 После запуска была выполнена проверка доступности каждого сервера напрямую:
 
-- `127.0.0.1:8081`
-- `127.0.0.1:8082`
-- `127.0.0.1:8083`
+```
+curl http://127.0.0.1:8081
+curl http://127.0.0.1:8082
+curl http://127.0.0.1:8083
+```
 
 На скриншоте видно, что все три Python-сервера успешно запущены и отдают разные ответы на своих портах:
   <img width="1915" height="631" alt="02_create_py_3_srv" src="https://github.com/user-attachments/assets/9dd8d26e-0aa0-49c9-96db-b97d5a8b4e45" />
@@ -346,7 +348,7 @@ frontend http_front
 
 backend python_back
     balance roundrobin
-    option httpchk GET /
+  #  option httpchk GET /
 
     server py1 127.0.0.1:8081 check weight 2
     server py2 127.0.0.1:8082 check weight 3
@@ -361,8 +363,12 @@ backend python_back
 - balance roundrobin включает алгоритм распределения запросов;
 - параметр weight задаёт относительный приоритет каждого backend-сервера.
 
-После настройки конфигурация была проверена и сервис был запущен.
+После настройки конфигурация была проверена и сервис был запущен:
 
+```
+haproxy -c -f /etc/haproxy/haproxy.cfg
+systemctl restart haproxy
+```
 
 ### 5. Проверка работы балансировки при обращении к example.local
 
@@ -407,7 +413,9 @@ HTTP/1.1 403 Forbidden
 
 Это подтверждает, что HAProxy не обрабатывает запросы без домена example.local и отклоняет их в соответствии с правилом:
 
+```
 http-request deny deny_status 403 unless host_example
+```
 
 На скриншоте ниже видно, что при обращении к HAProxy без домена example.local сервер возвращает ошибку 403 Forbidden:
 
