@@ -259,32 +259,99 @@ HAProxy принимал подключения на порту 1325 и пооч
 
 ---
 
-## Задание 2
+## Задание 2 
 - Запустите три simple python сервера на своей виртуальной машине на разных портах
 - Настройте балансировку Weighted Round Robin на 7 уровне, чтобы первый сервер имел вес 2, второй - 3, а третий - 4
 - HAproxy должен балансировать только тот http-трафик, который адресован домену example.local
 - На проверку направьте конфигурационный файл haproxy, скриншоты, где видно перенаправление запросов на разные серверы при обращении к HAProxy c использованием домена example.local и без него.
 
-`Приведите ответ в свободной форме........`
+### 1. Запуск трёх Python-серверов
+Для проверки балансировки были созданы три каталога с разными HTML-страницами:
+```
+mkdir -p ~/lb/server1 ~/lb/server2 ~/lb/server3
 
-1. `Заполните здесь этапы выполнения, если требуется ....`
-2. `Заполните здесь этапы выполнения, если требуется ....`
-3. `Заполните здесь этапы выполнения, если требуется ....`
-4. `Заполните здесь этапы выполнения, если требуется ....`
-5. `Заполните здесь этапы выполнения, если требуется ....`
-6. 
+echo '<h1>Server 1</h1><p>port 8081</p>' > ~/lb/server1/index.html
+echo '<h1>Server 2</h1><p>port 8082</p>' > ~/lb/server2/index.html
+echo '<h1>Server 3</h1><p>port 8083</p>' > ~/lb/server3/index.html
+```
+Создание каталогов для трёх Python-серверов и файлов index.html с разным содержимым для проверки балансировки:
+
+<img width="978" height="175" alt="1_create_py_index" src="https://github.com/user-attachments/assets/2ae600e9-bee3-491a-bfaa-c73d5a6951ac" />
+
+### 2. Запуск трёх simple Python-серверов
+
+После этого были запущены три простых HTTP-сервера Python на разных портах:
+```
+cd ~/lb/server1 && python3 -m http.server 8081
+```
+```
+cd ~/lb/server2 && python3 -m http.server 8082
+```
+```
+cd ~/lb/server3 && python3 -m http.server 8083
+```
+После запуска была выполнена проверка доступности каждого сервера напрямую:
+
+- `127.0.0.1:8081`
+- `127.0.0.1:8082`
+- `127.0.0.1:8083`
+
+На скриншоте видно, что все три Python-сервера успешно запущены и отдают разные ответы на своих портах:
+  <img width="1915" height="631" alt="02_create_py_3_srv" src="https://github.com/user-attachments/assets/9dd8d26e-0aa0-49c9-96db-b97d5a8b4e45" />
+
+### 3. Настройка доменного имени example.local
+
+Так как по условию задания HAProxy должен балансировать только HTTP-трафик, адресованный домену example.local, в файл /etc/hosts была добавлена локальная запись:
 
 ```
-Поле для вставки кода...
-....
-....
-....
-....
+echo "127.0.0.1 example.local" | sudo tee -a /etc/hosts
 ```
+После этого запросы к example.local стали указывать на локальную машину, где запущен HAProxy.
 
-`При необходимости прикрепитe сюда скриншоты
-![Название скриншота 2](ссылка на скриншот 2)`
+### 4. Настройка HAProxy
 
+Для выполнения задания был настроен HAProxy в HTTP-режиме, то есть на 7 уровне.
+В конфигурации было реализовано:
+
+- прослушивание входящих HTTP-запросов на порту 80;
+- проверка заголовка Host;
+- разрешение обработки только запросов к example.local;
+- запрет всех остальных HTTP-запросов;
+- балансировка между тремя backend-серверами по алгоритму Weighted Round Robin;
+- назначение весов 2, 3 и 4.
+
+Использовался следующий конфигурационный файл /etc/haproxy/haproxy.cfg:
+
+```
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    daemon
+
+defaults
+    log     global
+    mode    http
+    option  httplog
+    timeout connect 5s
+    timeout client  30s
+    timeout server  30s
+
+frontend http_front
+    bind *:80
+
+    acl host_example hdr(host) -i example.local
+    http-request deny deny_status 403 unless host_example
+
+    default_backend python_back
+
+backend python_back
+    balance roundrobin
+    option httpchk GET /
+
+    server py1 127.0.0.1:8081 check weight 2
+    server py2 127.0.0.1:8082 check weight 3
+    server py3 127.0.0.1:8083 check weight 4
+```
 
 ---
 
